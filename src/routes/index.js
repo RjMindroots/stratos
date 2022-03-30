@@ -5,7 +5,7 @@ import { User, Layer, Blog } from "../model";
 const router = express.Router()
 //Authentication
 router.post('/register', register_controller.register)
-router.post('/blog', blog_controller.blog)
+router.post('/createblog', blog_controller.createblog)
 router.post('/otp', otp_verification.otp_register)
 
 //Admin
