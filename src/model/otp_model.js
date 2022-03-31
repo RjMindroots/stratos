@@ -4,8 +4,10 @@ const Schema = mongoose.Schema;
 const otpSchema = new Schema({
     email : {type: String},
     otp : {type: Number},
-    expiry_otp:{type: Date}
+    createdAt: { type: Date, default: Date.now, index: { expires: 1 } }
 
-}, {timestamps: true})
+},{
+    usePushEach: true,
+  },)
 
 export default mongoose.model('Otp', otpSchema, 'otps')
