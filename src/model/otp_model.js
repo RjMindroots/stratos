@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 const otpSchema = new Schema({
     email : {type: String},
     otp : {type: Number},
-    createdAt: { type: Date, default: Date.now, index: { expires: 1 } }
+    createdAt: { type: Date, default: Date.now, index: { expires: 600 } }
 
 },{
     usePushEach: true,

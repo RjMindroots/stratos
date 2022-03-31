@@ -2,6 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import routes from './src/routes'
 import { APP_PORT, CONNECTION_URL } from "./src/config";
+import errorHandler from "./src/middleware/errorHandler";
 const app = express()
 
 
@@ -23,6 +24,7 @@ app.use(express.urlencoded({
 //routes
 app.use('/api', routes)
 
+app.use(errorHandler)
 
 app.listen(APP_PORT, ()=> {
     console.log(`App is running on ${APP_PORT}`)
