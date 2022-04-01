@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 const Schema = mongoose.Schema;
 
 const otpSchema = new Schema({
-    email : {type: String},
+    token : {type: String},
     otp : {type: Number},
     createdAt: { type: Date, default: Date.now, index: { expires: 600 } }
 

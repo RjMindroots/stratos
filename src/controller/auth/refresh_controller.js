@@ -4,7 +4,7 @@ import { RefreshToken, User } from '../../model';
 import CustomErrorHandler from '../../services/CustomErrorHandler';
 import JwtServices from '../../services/JwtServices';
 
-const refreshController = {
+const refresh_controller = {
     async refresh (req, res, next) {
         const refreshSchema = Joi.object({
             refresh_token: Joi.string().required()
@@ -42,4 +42,4 @@ const refreshController = {
     } 
 }
 
-export default refreshController
+export default refresh_controller

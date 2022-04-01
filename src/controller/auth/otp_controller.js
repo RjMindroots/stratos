@@ -7,16 +7,15 @@ const nodemailer = require("nodemailer");
 const otp_verification = {
     async otp_register(req, res, next) {
 
-        let result;
         let updateOtp
         let info
-        const { email } = req.body
+        const { token, email } = req.body
 
         const registerSchema = Joi.object({
-            email: Joi.string().email().required(),
+            token: Joi.string().required(),
         })
 
-        const { error } = registerSchema.validate({ email })
+        const { error } = registerSchema.validate({ token })
 
         if (error) {
             return next(error)
@@ -35,7 +34,7 @@ const otp_verification = {
         });
 
         try {
-            const otpExist = await Otp.exists({ email })
+            const otpExist = await Otp.exists({ token })
             if (otpExist) {
                 const newotp = otpGenerator.generate(4, { digits: true, upperCaseAlphabets: false, lowerCaseAlphabets: false, specialChars: false })
 
@@ -46,18 +45,24 @@ const otp_verification = {
                     html: `Your otp is ${newotp}`,
                 });
 
-                updateOtp = await Otp.findOneAndUpdate({email: req.body.email}, {$set:{otp: newotp}}, {new: true}, (err, doc) => {
+                updateOtp = await Otp.findOneAndUpdate({token: req.body.token}, {$set:{otp: newotp}}, {new: true}, (err, doc) => {
                     if (err) {
-                        console.log("Something went wrong please try again!");
+                        console.log(err)
                     }
-                    console.log(doc);
                 });
-
+                console.log(updateOtp)
             } else {
-                const userExist = await User.exists({ email })
+                const userExist = await User.exists({ _id : req.user._id })
                 if (userExist) {
                     const otp = otpGenerator.generate(4, { digits: true, upperCaseAlphabets: false, lowerCaseAlphabets: false, specialChars: false })
-                    const result = await Otp({ otp, email }).save()
+
+                    info = await transporter.sendMail({
+                        from: 'wpmindroots@gmail.com',
+                        to: email,
+                        subject: "Email verification",
+                        html: `Your otp is ${otp}`,
+                    });
+                    const result = await Otp({ otp, token }).save()
                     updateOtp = result.otp
                 } else {
                     return next(CustomErrorHandler.unAuthorized("Invalid User"))
@@ -65,15 +70,20 @@ const otp_verification = {
 
             }
 
+            res.json({ message: updateOtp })
+
         } catch (err) {
             next(err)
         }
 
-        res.json({ message: updateOtp })
+        
     },
     
 
     async otp_confirm(req, res, next) {
+        const { token, otp } = req.body
+
+
         
     }
 }
