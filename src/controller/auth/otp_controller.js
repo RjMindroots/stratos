@@ -1,90 +1,76 @@
 import Joi from 'joi'
-import { Otp, User } from "../../model"
-import otpGenerator from 'otp-generator'
-import CustomErrorHandler from '../../services/CustomErrorHandler'
-const nodemailer = require("nodemailer");
+import otpService from '../../services/otpService'
+import hashService from '../../services/hashService'
 
-const otp_verification = {
-    async otp_register(req, res, next) {
+const otp_controller = {
+    async send_otp(req, res, next) {
+        const {email} = req.body
 
-        let updateOtp
-        let info
-        const { token, email } = req.body
-
-        const registerSchema = Joi.object({
-            token: Joi.string().required(),
-        })
-
-        const { error } = registerSchema.validate({ token })
-
-        if (error) {
+        const otpSchema = Joi.object({
+            email: Joi.string().email({ tlds: { allow: false } })
+        });
+        const {error} = otpSchema.validate({email})
+        if(error){
             return next(error)
         }
 
-        let testAccount = await nodemailer.createTestAccount();
+        if(!email) {
+            return next({message:"Please provide email"})
+        }
+        // generateotp
+        const otp = await otpService.generateotp()
 
-        let transporter = nodemailer.createTransport({
-            host: "smtp.gmail.com",
-            port: 587,
-            secure: false, // true for 465, false for other ports
-            auth: {
-                user: 'wpmindroots@gmail.com', // generated ethereal user
-                pass: 'ropkrilobfptmykv', // generated ethereal password
-            },
-        });
+        // hashService
+        const ttl = 1000 * 60 * 2; //2 minutes
+        const expires = Date.now() + ttl;
+        const data = `${email}${otp}${expires}`;
+        const hash = await hashService.hashOtp(data)
 
+        //send to email 
         try {
-            const otpExist = await Otp.exists({ token })
-            if (otpExist) {
-                const newotp = otpGenerator.generate(4, { digits: true, upperCaseAlphabets: false, lowerCaseAlphabets: false, specialChars: false })
-
-                info = await transporter.sendMail({
-                    from: 'wpmindroots@gmail.com',
-                    to: email,
-                    subject: "Email verification",
-                    html: `Your otp is ${newotp}`,
-                });
-
-                updateOtp = await Otp.findOneAndUpdate({token: req.body.token}, {$set:{otp: newotp}}, {new: true}, (err, doc) => {
-                    if (err) {
-                        console.log(err)
-                    }
-                });
-                console.log(updateOtp)
-            } else {
-                const userExist = await User.exists({ _id : req.user._id })
-                if (userExist) {
-                    const otp = otpGenerator.generate(4, { digits: true, upperCaseAlphabets: false, lowerCaseAlphabets: false, specialChars: false })
-
-                    info = await transporter.sendMail({
-                        from: 'wpmindroots@gmail.com',
-                        to: email,
-                        subject: "Email verification",
-                        html: `Your otp is ${otp}`,
-                    });
-                    const result = await Otp({ otp, token }).save()
-                    updateOtp = result.otp
-                } else {
-                    return next(CustomErrorHandler.unAuthorized("Invalid User"))
-                }
-
-            }
-
-            res.json({ message: updateOtp })
+            await otpService.sendotp(email, otp)
+            return res.json({
+                hash: `${hash}.${expires}`,
+                email
+            })
 
         } catch (err) {
-            next(err)
+            console.log(err)
+            res.status(500).json({message: 'otp send failed'})
         }
 
-        
+
+
+
+
+        res.json({hash : hash})
+
     },
     
 
     async otp_confirm(req, res, next) {
-        const { token, otp } = req.body
+        const { email, otp, hash } = req.body
 
+        if(!email || !otp || !hash ) {
+            return next({message:"All fields are required"})
+        }
 
-        
+        const [hashedOtp, expires] = hash.split(".")
+
+        if(Date.now() > expires) {
+            return next({message:"OTP expired!"})
+        }
+
+        const data = `${email}${otp}${expires}`;
+
+        const isValid = otpService.verifyotp(hashedOtp, data)
+
+        if(!isValid) {
+            return next({message:"Invalid Otp"})
+        } else {
+            res.status(200).json({message:"Otp confirmed successfully"})
+        }
     }
 }
-export default otp_verification
+
+export default otp_controller

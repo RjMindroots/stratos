@@ -10,7 +10,7 @@ const userSchema = new Schema({
     city: {type: String},
     email: {type: String, unique: true},
     password : {type: String},
-    job: [{job_title: String, comapny_name: String, job_duration: Date, level: String}],
+    job_exp: [{job_title: String, comapny_name: String, job_duration: Date, level: String}],
     layers: [{type: 'ObjectId', ref:'Layer'}],
     login_type: {type: String},
     social_token: {type: String},
