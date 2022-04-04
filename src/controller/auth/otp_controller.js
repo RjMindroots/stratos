@@ -39,10 +39,6 @@ const otp_controller = {
             res.status(500).json({message: 'otp send failed'})
         }
 
-
-
-
-
         res.json({hash : hash})
 
     },
